@@ -3,13 +3,10 @@
 > A node-graph playground for hashing — wire a string into a hash node and watch the digest fall out.
 
 <p align="left">
-  <a href="https://cryptographic-converter.vercel.app"><img src="https://img.shields.io/badge/Live%20demo-000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live demo" /></a>
   <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
   <img src="https://img.shields.io/badge/React%20Flow-FF0072?style=for-the-badge&logo=react&logoColor=white" alt="React Flow" />
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
 </p>
-
-**[▶ Try it live](https://cryptographic-converter.vercel.app)**
 
 ## Why
 
