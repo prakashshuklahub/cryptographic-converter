@@ -1,45 +1,90 @@
+<div align="center">
+
 # 🔐 Cryptographic Converter
 
-> A node-graph playground for hashing — wire a string into a hash node and watch the digest fall out.
+**Hashing, made visible.**
 
-<p align="left">
-  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
-  <img src="https://img.shields.io/badge/React%20Flow-FF0072?style=for-the-badge&logo=react&logoColor=white" alt="React Flow" />
-  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+A node-graph playground where text flows through a hash node and the digest comes out the other
+side — recomputed on every keystroke, entirely in your browser.
+
+<p>
+  <img src="assets/badges/react-c8d863.svg" alt="React" />
+  <img src="assets/badges/typescript-d76883.svg" alt="TypeScript" />
+  <img src="assets/badges/react-flow-621f6e.svg" alt="React Flow" />
+  <img src="assets/badges/vite-a232b5.svg" alt="Vite" />
+  <img src="assets/badges/web-crypto-api-bf03cf.svg" alt="Web Crypto API" />
 </p>
 
-## Why
+[The idea](#the-idea) · [Nodes](#-the-graph) · [How it works](#-how-it-works) · [Setup](#-run-it-locally)
 
-Hashing is usually a black box: text goes in, a hex string comes out. This turns it into something
-you can *see* — a visual pipeline where each stage is a node you can inspect, so the input, the
-algorithm and the digest are all on screen at once and change together as you type.
+</div>
 
-## Nodes
+---
+
+## The idea
+
+Hashing is usually taught as a black box. Text goes in, a hex string comes out, and the only thing
+you really learn is that the output looks random and the length never changes.
+
+Turning it into a graph makes the parts addressable. The input, the algorithm and the digest are
+three separate things on screen at once, wired together, and you can watch the relationship
+between them: change one character and the entire digest changes; switch SHA-256 to SHA-512 and
+the output doubles in length. The avalanche effect stops being a sentence in a textbook and
+becomes something you can see happening.
+
+## 🕸 The graph
+
+```mermaid
+flowchart LR
+    A["<b>INPUT</b><br/>─────────<br/>free text field"]:::green
+    B["<b>HASH</b><br/>─────────<br/>SHA-1 · SHA-256<br/>SHA-384 · SHA-512"]:::red
+    C["<b>HASH RESULT</b><br/>─────────<br/>0x-prefixed hex digest"]:::green
+
+    A -->|"message"| B -->|"digest"| C
+
+    classDef green stroke:#22c55e,stroke-width:2px
+    classDef red stroke:#ef4444,stroke-width:2px
+```
 
 | Node | What it does |
 |---|---|
-| **String** | The input. Type any text; everything downstream recomputes live. |
-| **Hash** | Pick the algorithm — **SHA-1**, **SHA-256**, **SHA-384** or **SHA-512**. |
-| **Result** | The digest, rendered as a `0x`-prefixed hex string. |
+| **Input** | A text field. Every keystroke propagates downstream immediately. |
+| **Hash** | Algorithm selector — **SHA-1**, **SHA-256**, **SHA-384**, **SHA-512**. |
+| **Hash Result** | The digest as a `0x`-prefixed hex string, full value on hover. |
 
-Drag to rearrange, pan and zoom the canvas, and connect nodes by their handles.
+Nodes are draggable, edges are animated, and the canvas pans and zooms.
 
-## How it works
+## ⚙️ How it works
 
-Digests are computed entirely in the browser with the native
-[**Web Crypto API**](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest)
-(`crypto.subtle.digest`) — no crypto library, no network round-trip, and your input never leaves
-the page. The canvas is [React Flow](https://reactflow.dev); each node type is a plain React
-component wired up through `nodeTypes`.
+Digests are computed with the browser's native
+[**Web Crypto API**](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest) —
+no crypto library, no bundle weight, and no network round-trip. What you type never leaves the page.
 
 ```ts
-const hashBuffer = await crypto.subtle.digest(algorithm, encoder.encode(message));
-const hex = "0x" + Array.from(new Uint8Array(hashBuffer))
-  .map((b) => b.toString(16).padStart(2, "0"))
-  .join("");
+export async function getHashSteps(message: string, algorithm = "SHA-256") {
+  const data = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest(algorithm, data);
+
+  const hex = "0x" + Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return { hex };
+}
 ```
 
-## Run it locally
+Two implementation details worth noting:
+
+**State lives in React context, not in node data.** Each node type pulls what it needs from a
+shared `HashContext`, which means the nodes and edges arrays are `useMemo`'d once and never
+rebuilt. React Flow re-renders node *contents* on state change without recalculating graph layout.
+
+**The async hash is cancellation-guarded.** `crypto.subtle.digest` returns a promise, and typing
+fast enough fires several before the first resolves. A `cancelled` flag in the effect's cleanup
+discards stale results, so the displayed digest always matches the current input — never whichever
+promise happened to land last.
+
+## 🚀 Run it locally
 
 ```bash
 git clone https://github.com/prakashshuklahub/cryptographic-converter.git
@@ -48,22 +93,32 @@ npm install
 npm run dev
 ```
 
-Then open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints — usually `http://localhost:5173`.
 
 | Script | Does |
 |---|---|
-| `npm run dev` | Start the dev server with HMR |
+| `npm run dev` | Dev server with HMR |
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run lint` | ESLint |
 
-## Note on scope
+## 🧪 Things to try
 
-This is a learning and demo project, not a security tool. `crypto.subtle` is the right primitive,
-but SHA-1 is included for illustration only — **do not use it for anything that needs to be
-collision-resistant.** For password hashing, use a purpose-built KDF such as Argon2 or bcrypt.
+- Type `hello`, then change it to `hellp`. Watch how much of the digest changes for one letter.
+- Switch between SHA-256 and SHA-512 with the input fixed — same message, different length, no shared prefix.
+- Empty the input entirely. Hashing nothing still produces a digest, and it's always the same one.
+
+> [!WARNING]
+> This is a learning tool, not a security tool. **SHA-1 is included for illustration only** — it is
+> broken for collision resistance and must not be used where that matters. And no member of the
+> SHA-2 family is appropriate for passwords: use a purpose-built KDF such as Argon2, scrypt or bcrypt.
 
 ---
 
-Built by **[Prakash Shukla](https://github.com/prakashshuklahub)** ·
-[The Hustling Engineer](https://www.youtube.com/@TheHustlingEngineer)
+<div align="center">
+
+Built by **[Prakash Shukla](https://github.com/prakashshuklahub)**
+
+[The Hustling Engineer](https://www.youtube.com/@TheHustlingEngineer) · [LinkedIn](https://www.linkedin.com/in/prakash-shukla/)
+
+</div>
